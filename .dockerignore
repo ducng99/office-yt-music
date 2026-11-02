@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/.output
+**/.vinxi
+**/data
+**/*.sqlite*
+.git
+.claude
+Dockerfile
+.dockerignore

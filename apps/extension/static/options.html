@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Office Music Controller</title>
+    <style>
+        :root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; }
+        body { margin: 0; padding: 20px; min-width: 320px; background: light-dark(#fafafa, #0b0b0c); color: light-dark(#18181b, #ececee); }
+        h1 { font-size: 15px; margin: 0 0 16px; }
+        label { display: block; font-size: 12px; color: light-dark(#71717a, #9a9aa3); margin: 12px 0 4px; }
+        input { box-sizing: border-box; width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid light-dark(#e4e4e7, #2a2a2e); background: light-dark(#fff, #161618); color: inherit; font: inherit; }
+        button { margin-top: 16px; padding: 8px 14px; border: 0; border-radius: 8px; background: #7c6cf0; color: #fff; font: inherit; cursor: pointer; }
+        .status { display: flex; align-items: center; gap: 8px; margin-top: 16px; font-size: 13px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #a1a1aa; }
+        .dot.connected { background: #22c55e; }
+        .dot.error { background: #ef4444; }
+    </style>
+</head>
+<body>
+    <h1>Office Music Controller</h1>
+    <form id="form">
+        <label for="serverUrl">Server URL</label>
+        <input id="serverUrl" placeholder="https://music.example.com" required>
+        <label for="token">Controller token (shown in Admin &rsaquo; Settings)</label>
+        <input id="token" required>
+        <button type="submit">Save</button>
+    </form>
+    <div class="status"><span id="dot" class="dot"></span><span id="status">Not connected</span></div>
+    <script type="module" src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "types": ["chrome", "bun"],
+        "lib": ["ESNext", "DOM", "DOM.Iterable"]
+    },
+    "include": ["src", "*.ts"]
+}

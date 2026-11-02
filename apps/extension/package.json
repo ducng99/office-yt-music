@@ -1,0 +1,14 @@
+{
+    "name": "@office-music/extension",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "bun build.ts"
+    },
+    "dependencies": {
+        "@office-music/shared": "workspace:*"
+    },
+    "devDependencies": {
+        "@types/chrome": "^0.3.7"
+    }
+}

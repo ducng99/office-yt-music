@@ -1,0 +1,44 @@
+{
+    "manifest_version": 3,
+    "name": "Office Music Controller",
+    "version": "1.0.0",
+    "description": "Connects the YouTube Music tab to the Office Music server.",
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "office-music-controller@local",
+            "strict_min_version": "128.0",
+            "data_collection_permissions": {
+                "required": ["none"]
+            }
+        }
+    },
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'self'"
+    },
+    "permissions": ["storage"],
+    "host_permissions": ["https://music.youtube.com/*", "http://localhost/*", "http://127.0.0.1/*"],
+    "background": {
+        "scripts": ["background.js"]
+    },
+    "content_scripts": [
+        {
+            "matches": ["https://music.youtube.com/*"],
+            "js": ["content.js"],
+            "run_at": "document_idle"
+        },
+        {
+            "matches": ["https://music.youtube.com/*"],
+            "js": ["page.js"],
+            "run_at": "document_idle",
+            "world": "MAIN"
+        }
+    ],
+    "options_ui": {
+        "page": "options.html",
+        "open_in_tab": false
+    },
+    "action": {
+        "default_title": "Office Music Controller",
+        "default_popup": "options.html"
+    }
+}

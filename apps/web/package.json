@@ -1,0 +1,15 @@
+{
+  "name": "@office-music/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@office-music/shared": "workspace:*",
+    "@solidjs/router": "^1.0.1",
+    "solid-js": "^1.9.18",
+    "vite": "^8.3.5",
+    "vite-plugin-solid": "^2.11.15"
+  }
+}
