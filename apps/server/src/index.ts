@@ -129,6 +129,8 @@ server = Bun.serve<SocketData>({
                 hub.handleResponse(event.response);
             } else if (event.type === "nowPlaying") {
                 await service.handlePlayerReport(event.player).catch((error) => console.error("Player report failed:", error));
+            } else if (event.type === "idle") {
+                await service.handlePlayerIdle().catch((error) => console.error("Player idle report failed:", error));
             }
         },
 

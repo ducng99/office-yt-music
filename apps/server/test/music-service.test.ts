@@ -233,6 +233,47 @@ describe("queue", () => {
         expect(controller.commandTypes()).toContain("playNext");
     });
 
+    test("starts the next queued song when the player is idle", async () => {
+        await service.addToQueue(userIds[0], videoId(10));
+        await service.handlePlayerIdle();
+        expect(controller.commands.at(-1)).toEqual({ type: "play", videoId: videoId(10) });
+        expect(service.publicState().queue[0].status).toBe("sent");
+
+        await service.handlePlayerReport(report(videoId(10)));
+        expect(service.publicState().queue).toHaveLength(0);
+        expect(service.publicState().nowPlaying?.videoId).toBe(videoId(10));
+    });
+
+    test("plays a song added while the player is idle", async () => {
+        await service.handlePlayerIdle();
+        await service.addToQueue(userIds[0], videoId(10));
+        expect(controller.commands.at(-1)).toEqual({ type: "play", videoId: videoId(10) });
+    });
+
+    test("clears now playing when the player goes idle", async () => {
+        await service.handlePlayerReport(report(videoId(1)));
+        await service.handlePlayerIdle();
+        expect(service.publicState().nowPlaying).toBeNull();
+    });
+
+    test("does not repeat the play command while waiting for it to start", async () => {
+        await service.addToQueue(userIds[0], videoId(10));
+        await service.handlePlayerIdle();
+        await service.handlePlayerIdle();
+        expect(controller.commands.filter((command) => command.type === "play")).toHaveLength(1);
+    });
+
+    test("retries an idle play once, then gives up", async () => {
+        await service.addToQueue(userIds[0], videoId(10));
+        await service.handlePlayerIdle();
+        now += 20_000;
+        await service.handlePlayerIdle();
+        expect(controller.commands.filter((command) => command.type === "play")).toHaveLength(2);
+        now += 20_000;
+        await service.handlePlayerIdle();
+        expect(service.publicState().queue).toHaveLength(0);
+    });
+
     test("re-sends a lost item once, then gives up", async () => {
         await service.handlePlayerReport(report(videoId(1)));
         await service.addToQueue(userIds[0], videoId(10));

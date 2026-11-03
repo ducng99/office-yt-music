@@ -27,7 +27,9 @@ export default function NowPlaying() {
                                     <div class="album-art placeholder"><MusicIcon size={48} /></div>
                                     <div>
                                         <h1 class="track-title">Nothing playing</h1>
-                                        <p class="track-artist">Waiting for YouTube Music to start a song</p>
+                                        <p class="track-artist">
+                                            {state().queue.length > 0 ? "Starting the next song in the queue" : "Add a song to start the music"}
+                                        </p>
                                     </div>
                                 </>
                             }

@@ -7,6 +7,7 @@ import { CONTENT_SOURCE, PAGE_SOURCE } from "./shared.ts";
 const REPORT_INTERVAL_MS = 1000;
 const HEARTBEAT_REPORT_MS = 5000;
 const SONGS_SEARCH_PARAMS = "EgWKAQIIAWoKEAkQBRAKEAMQBA==";
+const PLAYER_STATE_ENDED = 0;
 const PLAYER_STATE_PAUSED = 2;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -257,6 +258,17 @@ function removeFromQueue(videoId: string): void {
     }
 }
 
+function play(videoId: string): void {
+    const app = getApp();
+    if (!app) {
+        throw new Error("YouTube Music hasn't finished loading");
+    }
+    app.dispatchEvent(new CustomEvent("yt-navigate", {
+        bubbles: true,
+        detail: { endpoint: { watchEndpoint: { videoId } } }
+    }));
+}
+
 function skip(): void {
     const player = getPlayer();
     if (player) {
@@ -270,10 +282,21 @@ function skip(): void {
     button.click();
 }
 
+function isIdle(): boolean {
+    if (!getApp() || isAdPlaying()) {
+        return false;
+    }
+    const player = getPlayer();
+    if (!player || !player.getVideoData()?.video_id) {
+        return true;
+    }
+    return player.getPlayerState() === PLAYER_STATE_ENDED;
+}
+
 function readPlayer(): PlayerReport | null {
     const player = getPlayer();
     const data = player?.getVideoData();
-    if (!player || !data?.video_id || isAdPlaying()) {
+    if (!player || !data?.video_id || isAdPlaying() || player.getPlayerState() === PLAYER_STATE_ENDED) {
         return null;
     }
 
@@ -297,6 +320,9 @@ async function runCommand(command: ControllerCommand): Promise<SearchResult[]> {
         case "skip":
             skip();
             return [];
+        case "play":
+            play(command.videoId);
+            return [];
         case "playNext":
             await playNext(command.videoId);
             return [];
@@ -316,8 +342,22 @@ function post(message: Json): void {
 
 let lastReport: PlayerReport | null = null;
 let lastReportAt = 0;
+let lastIdleAt = 0;
+
+function reportIdle(force: boolean): void {
+    if (force || lastReport !== null || Date.now() - lastIdleAt >= HEARTBEAT_REPORT_MS) {
+        lastReport = null;
+        lastIdleAt = Date.now();
+        post({ type: "idle" });
+    }
+}
 
 function report(force: boolean): void {
+    if (isIdle()) {
+        reportIdle(force);
+        return;
+    }
+
     const current = readPlayer();
     if (!current) {
         return;

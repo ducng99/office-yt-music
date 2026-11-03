@@ -6,6 +6,7 @@ import { getSettings } from "./settings.ts";
 import { nzDate } from "./nz-date.ts";
 
 const MAX_SEND_ATTEMPTS = 2;
+const PLAY_START_GRACE_MS = 15_000;
 const HOUR_MS = 60 * 60 * 1000;
 
 export class MusicError extends Error {}
@@ -51,6 +52,8 @@ export class MusicService {
     private broadcast: (state: PublicState) => void;
     private clock: () => number;
     private currentPlay: CurrentPlay | null = null;
+    private playerIdle = false;
+    private playRequestedAt = 0;
 
     constructor(db: Database, controller: Controller, broadcast: (state: PublicState) => void, clock: () => number = Date.now) {
         this.db = db;
@@ -113,6 +116,7 @@ export class MusicService {
     async handlePlayerReport(report: PlayerReport): Promise<void> {
         const now = this.clock();
         const current = this.currentPlay;
+        this.playerIdle = false;
 
         if (current && current.videoId === report.videoId) {
             current.position = report.position;
@@ -133,6 +137,16 @@ export class MusicService {
         this.startPlay(report, now);
         this.reconcileSentItem(report.videoId);
         this.notifyChanged();
+        await this.pushNextIfNeeded();
+    }
+
+    async handlePlayerIdle(): Promise<void> {
+        this.playerIdle = true;
+        if (this.currentPlay) {
+            this.db.query("UPDATE plays SET ended_at = ? WHERE id = ?").run(this.clock(), this.currentPlay.id);
+            this.currentPlay = null;
+            this.notifyChanged();
+        }
         await this.pushNextIfNeeded();
     }
 
@@ -251,15 +265,29 @@ export class MusicService {
     }
 
     async pushNextIfNeeded(): Promise<void> {
-        if (!this.controller.online || !this.currentPlay) {
+        if (!this.controller.online) {
             return;
         }
-        const sent = this.db.query<QueueRow, []>("SELECT * FROM queue_items WHERE status = 'sent'").get();
-        if (sent) {
+        const startNow = !this.currentPlay && this.playerIdle;
+        if (!this.currentPlay && !startNow) {
             return;
+        }
+        if (startNow && this.clock() - this.playRequestedAt < PLAY_START_GRACE_MS) {
+            return;
+        }
+
+        const sent = this.db.query<QueueRow, []>("SELECT * FROM queue_items WHERE status = 'sent'").get();
+        if (sent && !startNow) {
+            return;
+        }
+        if (sent) {
+            this.reconcileSentItem(null);
         }
         const next = this.db.query<QueueRow, []>("SELECT * FROM queue_items WHERE status = 'pending' ORDER BY id LIMIT 1").get();
         if (!next) {
+            if (sent) {
+                this.notifyChanged();
+            }
             return;
         }
 
@@ -267,9 +295,15 @@ export class MusicService {
         this.notifyChanged();
 
         try {
-            await this.controller.send({ type: "playNext", videoId: next.video_id });
+            if (startNow) {
+                this.playRequestedAt = this.clock();
+                await this.controller.send({ type: "play", videoId: next.video_id });
+            } else {
+                await this.controller.send({ type: "playNext", videoId: next.video_id });
+            }
         } catch (error) {
-            console.error("Play next failed:", error);
+            console.error(startNow ? "Play failed:" : "Play next failed:", error);
+            this.playRequestedAt = 0;
             const latest = this.db.query<QueueRow, [number]>("SELECT * FROM queue_items WHERE id = ?").get(next.id);
             if (latest?.status === "sent") {
                 this.setQueueStatus(next.id, "pending");
@@ -305,7 +339,7 @@ export class MusicService {
         };
     }
 
-    private reconcileSentItem(newVideoId: string): void {
+    private reconcileSentItem(newVideoId: string | null): void {
         const sent = this.db.query<QueueRow, []>("SELECT * FROM queue_items WHERE status = 'sent'").get();
         if (!sent) {
             return;

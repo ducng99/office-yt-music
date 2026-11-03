@@ -8,6 +8,7 @@ export interface PlayerReport extends Track {
 
 export type ControllerCommand =
     | { type: "skip" }
+    | { type: "play"; videoId: string }
     | { type: "playNext"; videoId: string }
     | { type: "removeFromQueue"; videoId: string }
     | { type: "search"; query: string }
@@ -21,6 +22,7 @@ export type ControllerResponse =
 
 export type ControllerEvent =
     | { type: "nowPlaying"; player: PlayerReport }
+    | { type: "idle" }
     | { type: "response"; response: ControllerResponse }
     | { type: "ping" };
 
