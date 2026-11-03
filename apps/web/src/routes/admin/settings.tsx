@@ -12,6 +12,7 @@ interface SettingsResponse {
 const FIELDS: { key: keyof Settings; label: string; help: string }[] = [
     { key: "skipThreshold", label: "Votes needed to skip", help: "A song is skipped once this many people vote." },
     { key: "dailyVoteLimit", label: "Skip votes per person per day", help: "Resets at midnight NZ time." },
+    { key: "voteWindowSeconds", label: "Skip voting window (seconds)", help: "Votes to skip are only accepted during this many seconds from the start of a song." },
     { key: "duplicateWindowHours", label: "Duplicate window (hours)", help: "A song can't be re-added if it played within this many hours." }
 ];
 

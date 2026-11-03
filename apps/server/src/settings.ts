@@ -4,13 +4,15 @@ import type { Settings } from "@office-music/shared";
 const DEFAULTS: Settings = {
     skipThreshold: 3,
     dailyVoteLimit: 3,
-    duplicateWindowHours: 4
+    duplicateWindowHours: 4,
+    voteWindowSeconds: 60
 };
 
 const KEYS: Record<keyof Settings, string> = {
     skipThreshold: "skip_threshold",
     dailyVoteLimit: "daily_vote_limit",
-    duplicateWindowHours: "duplicate_window_hours"
+    duplicateWindowHours: "duplicate_window_hours",
+    voteWindowSeconds: "vote_window_seconds"
 };
 
 const CONTROLLER_TOKEN_KEY = "controller_token";

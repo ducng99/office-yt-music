@@ -132,6 +132,41 @@ describe("voting", () => {
         expect(service.personalState(userIds[0]).votesLeftToday).toBe(2);
     });
 
+    test("allows voting during the first minute of a song", async () => {
+        await service.handlePlayerReport({ ...report(videoId(1)), position: 59 });
+        await service.vote(userIds[0]);
+        expect(service.publicState().votes.voteCount).toBe(1);
+    });
+
+    test("rejects voting after the first minute of a song", async () => {
+        await service.handlePlayerReport({ ...report(videoId(1)), position: 61 });
+        await expect(service.vote(userIds[0])).rejects.toThrow("first 60 seconds");
+    });
+
+    test("respects a configured voting window", async () => {
+        updateSettings(db, { voteWindowSeconds: 120 });
+        await service.handlePlayerReport({ ...report(videoId(1)), position: 90 });
+        await service.vote(userIds[0]);
+        expect(service.publicState().votes.voteCount).toBe(1);
+        expect(service.publicState().votes.windowSeconds).toBe(120);
+
+        await service.handlePlayerReport({ ...report(videoId(2)), position: 121 });
+        await expect(service.vote(userIds[0])).rejects.toThrow("first 120 seconds");
+    });
+
+    test("accounts for time elapsed since the last player report", async () => {
+        await service.handlePlayerReport({ ...report(videoId(1)), position: 50 });
+        now += 15_000;
+        await expect(service.vote(userIds[0])).rejects.toThrow("first 60 seconds");
+    });
+
+    test("does not advance the position while paused", async () => {
+        await service.handlePlayerReport({ ...report(videoId(1)), position: 50, isPaused: true });
+        now += 15_000;
+        await service.vote(userIds[0]);
+        expect(service.publicState().votes.voteCount).toBe(1);
+    });
+
     test("public state never exposes who voted", async () => {
         await service.handlePlayerReport(report(videoId(1)));
         await service.vote(userIds[0]);

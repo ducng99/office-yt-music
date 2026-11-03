@@ -1,24 +1,35 @@
-import { For, Show, createSignal } from "solid-js";
+import { For, Show, createSignal, onCleanup } from "solid-js";
 import { api, errorMessage } from "~/lib/api";
 import type { PersonalState } from "@office-music/shared";
-import { musicState, personal, setPersonal } from "~/lib/session";
+import { livePosition } from "~/lib/player";
+import { musicState, personal, receivedAt, setPersonal } from "~/lib/session";
 import { SkipIcon } from "./Icons";
 
 export default function VotePanel() {
     const [busy, setBusy] = createSignal(false);
     const [error, setError] = createSignal("");
+    const [now, setNow] = createSignal(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    onCleanup(() => clearInterval(timer));
 
-    const votes = () => musicState()?.votes ?? { voteCount: 0, threshold: 0 };
+    const votes = () => musicState()?.votes ?? { voteCount: 0, threshold: 0, windowSeconds: 0 };
+    const votingClosed = () => {
+        const track = musicState()?.nowPlaying;
+        return Boolean(track && livePosition(track, receivedAt(), now()) > votes().windowSeconds);
+    };
     const canVote = () => {
         const state = musicState();
         const mine = personal();
-        return Boolean(state?.nowPlaying && state.controllerOnline && mine && !mine.youVoted && mine.votesLeftToday > 0);
+        return Boolean(state?.nowPlaying && state.controllerOnline && mine && !mine.youVoted && mine.votesLeftToday > 0 && !votingClosed());
     };
 
     const buttonLabel = () => {
         const mine = personal();
         if (mine?.youVoted) {
             return "Voted";
+        }
+        if (votingClosed()) {
+            return "Voting closed";
         }
         return "Vote to skip";
     };

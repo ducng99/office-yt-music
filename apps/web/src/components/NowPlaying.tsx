@@ -1,16 +1,8 @@
 import { Show, createSignal, onCleanup } from "solid-js";
-import type { NowPlaying as NowPlayingData } from "@office-music/shared";
 import { formatTime } from "~/lib/format";
+import { livePosition } from "~/lib/player";
 import { musicState, receivedAt } from "~/lib/session";
 import { MusicIcon, WifiOffIcon } from "./Icons";
-
-function livePosition(track: NowPlayingData, received: number, now: number): number {
-    if (track.isPaused) {
-        return track.position;
-    }
-    const elapsed = (now - received) / 1000;
-    return Math.min(track.duration, track.position + elapsed);
-}
 
 export default function NowPlaying() {
     const [now, setNow] = createSignal(Date.now());

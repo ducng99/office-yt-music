@@ -28,6 +28,7 @@ export interface NowPlaying extends Track {
 export interface VoteState {
     voteCount: number;
     threshold: number;
+    windowSeconds: number;
 }
 
 export interface PublicState {
@@ -58,4 +59,5 @@ export interface Settings {
     skipThreshold: number;
     dailyVoteLimit: number;
     duplicateWindowHours: number;
+    voteWindowSeconds: number;
 }

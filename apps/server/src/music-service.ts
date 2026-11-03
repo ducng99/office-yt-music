@@ -79,7 +79,8 @@ export class MusicService {
                 : null,
             votes: {
                 voteCount: current ? this.countVotesForPlay(current.id) : 0,
-                threshold: settings.skipThreshold
+                threshold: settings.skipThreshold,
+                windowSeconds: settings.voteWindowSeconds
             },
             queue: this.listQueue()
         };
@@ -143,6 +144,9 @@ export class MusicService {
         const shouldSkip = this.db.transaction(() => {
             if (current.skipping) {
                 throw new MusicError("This song is already being skipped");
+            }
+            if (this.livePosition(current, now) > settings.voteWindowSeconds) {
+                throw new MusicError(`Voting to skip is only allowed during the first ${settings.voteWindowSeconds} seconds of a song`);
             }
             const alreadyVoted = this.db.query("SELECT 1 FROM votes WHERE user_id = ? AND play_id = ?").get(userId, current.id);
             if (alreadyVoted) {
@@ -333,6 +337,13 @@ export class MusicService {
 
     private setQueueStatus(itemId: number, status: QueueStatus): void {
         this.db.query("UPDATE queue_items SET status = ? WHERE id = ?").run(status, itemId);
+    }
+
+    private livePosition(current: CurrentPlay, now: number): number {
+        if (current.isPaused) {
+            return current.position;
+        }
+        return current.position + (now - current.reportedAt) / 1000;
     }
 
     private countVotesForPlay(playId: number): number {
