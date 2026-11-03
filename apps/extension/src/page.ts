@@ -411,3 +411,39 @@ function dismissStillWatchingPrompt(): void {
 }
 
 setInterval(dismissStillWatchingPrompt, REPORT_INTERVAL_MS);
+
+// Evens out loud and quiet songs with a compressor on the player's audio.
+// The context is only connected once it is running, because a suspended context would silence the player.
+let audioContext: AudioContext | null = null;
+let connectedVideo: HTMLMediaElement | null = null;
+
+function connectVolumeStabiliser(): void {
+    const video = document.querySelector("video") as HTMLVideoElement | null;
+    if (!video || video === connectedVideo) {
+        return;
+    }
+
+    audioContext ??= new AudioContext();
+    if (audioContext.state !== "running") {
+        void audioContext.resume();
+        return;
+    }
+
+    const compressor = audioContext.createDynamicsCompressor();
+    compressor.threshold.value = -40;
+    compressor.knee.value = 30;
+    compressor.ratio.value = 12;
+    compressor.attack.value = 0.003;
+    compressor.release.value = 0.25;
+
+    const makeupGain = audioContext.createGain();
+    makeupGain.gain.value = 2;
+
+    const source = audioContext.createMediaElementSource(video);
+    source.connect(compressor);
+    compressor.connect(makeupGain);
+    makeupGain.connect(audioContext.destination);
+    connectedVideo = video;
+}
+
+setInterval(connectVolumeStabiliser, REPORT_INTERVAL_MS);
