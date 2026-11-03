@@ -206,6 +206,20 @@ describe("queue", () => {
         expect(second.videoId).toBe("9bZkp7q19f0");
     });
 
+    test("limits how many songs one user can have queued", async () => {
+        updateSettings(db, { maxQueuedPerUser: 2 });
+        await service.handlePlayerReport(report(videoId(1)));
+        await service.addToQueue(userIds[0], videoId(10));
+        await service.addToQueue(userIds[0], videoId(11));
+
+        await expect(service.addToQueue(userIds[0], videoId(12))).rejects.toThrow("can only have 2 songs");
+        await service.addToQueue(userIds[1], videoId(13));
+
+        await service.handlePlayerReport(report(videoId(10)));
+        await service.handlePlayerReport(report(videoId(11)));
+        await service.addToQueue(userIds[0], videoId(12));
+    });
+
     test("sends only one item to the player at a time, in order", async () => {
         await service.handlePlayerReport(report(videoId(1)));
         await service.addToQueue(userIds[0], videoId(10));

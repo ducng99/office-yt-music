@@ -61,4 +61,5 @@ export interface Settings {
     dailyVoteLimit: number;
     duplicateWindowHours: number;
     voteWindowSeconds: number;
+    maxQueuedPerUser: number;
 }

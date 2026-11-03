@@ -5,14 +5,16 @@ const DEFAULTS: Settings = {
     skipThreshold: 3,
     dailyVoteLimit: 3,
     duplicateWindowHours: 4,
-    voteWindowSeconds: 60
+    voteWindowSeconds: 60,
+    maxQueuedPerUser: 5
 };
 
 const KEYS: Record<keyof Settings, string> = {
     skipThreshold: "skip_threshold",
     dailyVoteLimit: "daily_vote_limit",
     duplicateWindowHours: "duplicate_window_hours",
-    voteWindowSeconds: "vote_window_seconds"
+    voteWindowSeconds: "vote_window_seconds",
+    maxQueuedPerUser: "max_queued_per_user"
 };
 
 const CONTROLLER_TOKEN_KEY = "controller_token";

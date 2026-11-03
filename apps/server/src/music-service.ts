@@ -220,6 +220,7 @@ export class MusicService {
         }
 
         this.assertNotDuplicate(videoId);
+        this.assertUnderQueueLimit(userId);
 
         const [track] = await this.controller.send({ type: "lookup", videoId });
         if (!track) {
@@ -227,6 +228,7 @@ export class MusicService {
         }
 
         this.assertNotDuplicate(videoId);
+        this.assertUnderQueueLimit(userId);
 
         const row = this.db.query<QueueRow, [number, string, string, string, string, number]>(
             "INSERT INTO queue_items (user_id, video_id, title, artist, thumbnail, created_at) VALUES (?, ?, ?, ?, ?, ?) RETURNING *"
@@ -354,6 +356,14 @@ export class MusicService {
             return;
         }
         this.setQueueStatus(sent.id, "pending");
+    }
+
+    private assertUnderQueueLimit(userId: number): void {
+        const limit = getSettings(this.db).maxQueuedPerUser;
+        const row = this.db.query<{ total: number }, [number]>("SELECT COUNT(*) AS total FROM queue_items WHERE user_id = ? AND status IN ('pending', 'sent')").get(userId);
+        if ((row?.total ?? 0) >= limit) {
+            throw new MusicError(`You can only have ${limit} songs in the queue at once`);
+        }
     }
 
     private assertNotDuplicate(videoId: string): void {
