@@ -7,3 +7,4 @@ dist
 data
 .env
 .env.local
+web-ext-artifacts/
