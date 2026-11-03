@@ -55,7 +55,8 @@ function toErrorResponse(error: unknown): Response {
     return errorResponse(500, "Something went wrong");
 }
 
-const serveWeb = await createWebHandler(process.env.NODE_ENV === "development", process.env.STATIC_DIR);
+// Bun.env rather than process.env: `bun build` inlines process.env.NODE_ENV at bundle time.
+const serveWeb = await createWebHandler(Bun.env.NODE_ENV === "development", process.env.STATIC_DIR);
 
 server = Bun.serve<SocketData>({
     port: PORT,
