@@ -42,6 +42,7 @@ export interface PersonalState {
     youVoted: boolean;
     votesLeftToday: number;
     dailyVoteLimit: number;
+    queuedItemIds: number[];
 }
 
 export interface SessionUser {

@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { extractVideoId } from "@office-music/shared";
-import type { PersonalState, PlayerReport, PublicState, QueueItem, QueueStatus, SearchResult } from "@office-music/shared";
+import type { PersonalState, PlayerReport, PublicState, QueueItem, QueueStatus, SearchResult, SessionUser } from "@office-music/shared";
 import type { Controller } from "./controller-hub.ts";
 import { getSettings } from "./settings.ts";
 import { nzDate } from "./nz-date.ts";
@@ -29,6 +29,7 @@ interface QueueRow {
     title: string;
     artist: string;
     thumbnail: string;
+    user_id: number;
     status: QueueStatus;
     send_attempts: number;
 }
@@ -93,11 +94,15 @@ export class MusicService {
         const youVoted = current
             ? this.db.query("SELECT 1 FROM votes WHERE user_id = ? AND play_id = ?").get(userId, current.id) !== null
             : false;
+        const queuedItemIds = this.db.query<{ id: number }, [number]>(
+            "SELECT id FROM queue_items WHERE user_id = ? AND status IN ('pending', 'sent') ORDER BY id"
+        ).all(userId).map((row) => row.id);
 
         return {
             youVoted,
             votesLeftToday: Math.max(0, settings.dailyVoteLimit - used),
-            dailyVoteLimit: settings.dailyVoteLimit
+            dailyVoteLimit: settings.dailyVoteLimit,
+            queuedItemIds
         };
     }
 
@@ -222,10 +227,13 @@ export class MusicService {
         return toQueueItem(row);
     }
 
-    async removeQueueItem(itemId: number): Promise<void> {
+    async removeQueueItem(requester: SessionUser, itemId: number): Promise<void> {
         const row = this.db.query<QueueRow, [number]>("SELECT * FROM queue_items WHERE id = ?").get(itemId);
         if (!row || (row.status !== "pending" && row.status !== "sent")) {
             throw new MusicError("That song is no longer in the queue");
+        }
+        if (!requester.isAdmin && row.user_id !== requester.id) {
+            throw new MusicError("You can only remove songs you added");
         }
 
         this.setQueueStatus(row.id, "removed");

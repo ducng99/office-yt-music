@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { Database } from "bun:sqlite";
-import type { ControllerCommand, PlayerReport, PublicState, SearchResult } from "@office-music/shared";
+import type { ControllerCommand, PlayerReport, PublicState, SearchResult, SessionUser } from "@office-music/shared";
 import { openDatabase } from "../src/db.ts";
 import { MusicService } from "../src/music-service.ts";
 import { updateSettings } from "../src/settings.ts";
@@ -35,6 +35,14 @@ function videoId(n: number): string {
 
 function report(id: string): PlayerReport {
     return { videoId: id, title: `Song ${id}`, artist: "Artist", thumbnail: "", position: 0, duration: 180, isPaused: false };
+}
+
+function member(userId: number): SessionUser {
+    return { id: userId, username: "member", isAdmin: false };
+}
+
+function admin(userId: number): SessionUser {
+    return { id: userId, username: "admin", isAdmin: true };
 }
 
 // 2026-11-03 10:00 NZDT (UTC+13)
@@ -275,9 +283,41 @@ describe("queue", () => {
         await service.addToQueue(userIds[0], videoId(10));
         const pending = await service.addToQueue(userIds[0], videoId(11));
 
-        await service.removeQueueItem(pending.id);
+        await service.removeQueueItem(member(userIds[0]), pending.id);
         expect(service.publicState().queue.map((item) => item.videoId)).toEqual([videoId(10)]);
         expect(controller.commandTypes()).not.toContain("removeFromQueue");
+    });
+
+    test("users can only remove their own songs", async () => {
+        await service.handlePlayerReport(report(videoId(1)));
+        await service.addToQueue(userIds[0], videoId(10));
+        const bobs = await service.addToQueue(userIds[1], videoId(11));
+
+        await expect(service.removeQueueItem(member(userIds[0]), bobs.id)).rejects.toThrow("only remove songs you added");
+        expect(service.publicState().queue.map((item) => item.videoId)).toEqual([videoId(10), videoId(11)]);
+
+        await service.removeQueueItem(member(userIds[1]), bobs.id);
+        expect(service.publicState().queue.map((item) => item.videoId)).toEqual([videoId(10)]);
+    });
+
+    test("admins can remove anyone's songs", async () => {
+        await service.handlePlayerReport(report(videoId(1)));
+        const alices = await service.addToQueue(userIds[0], videoId(10));
+
+        await service.removeQueueItem(admin(userIds[1]), alices.id);
+        expect(service.publicState().queue).toEqual([]);
+    });
+
+    test("personal state lists the user's queued items", async () => {
+        await service.handlePlayerReport(report(videoId(1)));
+        const first = await service.addToQueue(userIds[0], videoId(10));
+        await service.addToQueue(userIds[1], videoId(11));
+        const second = await service.addToQueue(userIds[0], videoId(12));
+
+        expect(service.personalState(userIds[0]).queuedItemIds).toEqual([first.id, second.id]);
+        await service.removeQueueItem(member(userIds[0]), first.id);
+        expect(service.personalState(userIds[0]).queuedItemIds).toEqual([second.id]);
+        expect(service.personalState(userIds[2]).queuedItemIds).toEqual([]);
     });
 
     test("removing a sent item removes it from the player and sends the next", async () => {
@@ -285,10 +325,10 @@ describe("queue", () => {
         const sent = await service.addToQueue(userIds[0], videoId(10));
         await service.addToQueue(userIds[0], videoId(11));
 
-        await service.removeQueueItem(sent.id);
+        await service.removeQueueItem(member(userIds[0]), sent.id);
         expect(controller.commands).toContainEqual({ type: "removeFromQueue", videoId: videoId(10) });
         expect(controller.commands.at(-1)).toEqual({ type: "playNext", videoId: videoId(11) });
-        await expect(service.removeQueueItem(sent.id)).rejects.toThrow("no longer in the queue");
+        await expect(service.removeQueueItem(member(userIds[0]), sent.id)).rejects.toThrow("no longer in the queue");
     });
 });
 

@@ -1,12 +1,13 @@
 import { For, Show, createSignal } from "solid-js";
 import type { QueueItem } from "@office-music/shared";
 import { api, errorMessage } from "~/lib/api";
-import { musicState, user } from "~/lib/session";
+import { musicState, personal, refreshPersonal, user } from "~/lib/session";
 import { XIcon } from "./Icons";
 
 export default function Queue() {
     const [error, setError] = createSignal("");
     const queue = () => musicState()?.queue ?? [];
+    const canRemove = (item: QueueItem) => user()?.isAdmin || personal()?.queuedItemIds.includes(item.id);
 
     async function remove(item: QueueItem) {
         if (!confirm(`Remove "${item.title}" from the queue?`)) {
@@ -15,6 +16,7 @@ export default function Queue() {
         setError("");
         try {
             await api(`/api/queue/${item.id}`, "DELETE");
+            await refreshPersonal();
         } catch (caught) {
             setError(errorMessage(caught));
         }
@@ -49,7 +51,7 @@ export default function Queue() {
                                 <Show when={item.status === "sent"}>
                                     <span class="badge">Next</span>
                                 </Show>
-                                <Show when={user()?.isAdmin}>
+                                <Show when={canRemove(item)}>
                                     <button
                                         class="icon-button danger"
                                         type="button"

@@ -1,5 +1,5 @@
 import type { BunRequest } from "bun";
-import { type AppContext, json, parseId, readJson, requireAdmin, requireUser } from "../http.ts";
+import { type AppContext, json, parseId, readJson, requireUser } from "../http.ts";
 
 export function musicRoutes({ db, service }: AppContext) {
     return {
@@ -38,8 +38,8 @@ export function musicRoutes({ db, service }: AppContext) {
 
         "/api/queue/:id": {
             DELETE: async (request: BunRequest<"/api/queue/:id">) => {
-                requireAdmin(db, request);
-                await service.removeQueueItem(parseId(request.params.id));
+                const user = requireUser(db, request);
+                await service.removeQueueItem(user, parseId(request.params.id));
                 return json({ ok: true });
             }
         }

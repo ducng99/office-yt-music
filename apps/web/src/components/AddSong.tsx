@@ -1,7 +1,7 @@
 import { For, Show, createSignal } from "solid-js";
 import type { QueueItem, SearchResult } from "@office-music/shared";
 import { api, errorMessage } from "~/lib/api";
-import { musicState } from "~/lib/session";
+import { musicState, refreshPersonal } from "~/lib/session";
 import { PlusIcon, SearchIcon } from "./Icons";
 
 export default function AddSong() {
@@ -41,6 +41,7 @@ export default function AddSong() {
         try {
             const item = await api<QueueItem>("/api/queue", "POST", { input: result.videoId });
             setSuccess(`Added "${item.title}" to the queue`);
+            refreshPersonal();
             setResults(null);
             setQuery("");
         } catch (caught) {
