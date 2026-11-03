@@ -403,3 +403,11 @@ window.addEventListener("message", async (event) => {
 });
 
 setInterval(() => report(false), REPORT_INTERVAL_MS);
+
+function dismissStillWatchingPrompt(): void {
+    const prompt = document.querySelector("ytmusic-you-there-renderer");
+    const button = prompt?.querySelector("button") as HTMLButtonElement | null;
+    button?.click();
+}
+
+setInterval(dismissStillWatchingPrompt, REPORT_INTERVAL_MS);
