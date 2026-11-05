@@ -29,6 +29,7 @@ export interface VoteState {
     voteCount: number;
     threshold: number;
     windowSeconds: number;
+    secondsLeft: number;
 }
 
 export interface PublicState {

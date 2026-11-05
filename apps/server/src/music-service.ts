@@ -22,6 +22,7 @@ interface CurrentPlay {
     duration: number;
     isPaused: boolean;
     reportedAt: number;
+    startedAt: number;
 }
 
 interface QueueRow {
@@ -84,7 +85,8 @@ export class MusicService {
             votes: {
                 voteCount: current ? this.countVotesForPlay(current.id) : 0,
                 threshold: settings.skipThreshold,
-                windowSeconds: settings.voteWindowSeconds
+                windowSeconds: settings.voteWindowSeconds,
+                secondsLeft: current ? this.voteSecondsLeft(current, settings.voteWindowSeconds) : 0
             },
             queue: this.listQueue()
         };
@@ -164,7 +166,7 @@ export class MusicService {
             if (current.skipping) {
                 throw new MusicError("This song is already being skipped");
             }
-            if (this.livePosition(current, now) > settings.voteWindowSeconds) {
+            if (this.voteSecondsLeft(current, settings.voteWindowSeconds) <= 0) {
                 throw new MusicError(`Voting to skip is only allowed during the first ${settings.voteWindowSeconds} seconds of a song`);
             }
             const alreadyVoted = this.db.query("SELECT 1 FROM votes WHERE user_id = ? AND play_id = ?").get(userId, current.id);
@@ -337,7 +339,8 @@ export class MusicService {
             position: report.position,
             duration: report.duration,
             isPaused: report.isPaused,
-            reportedAt: now
+            reportedAt: now,
+            startedAt: now
         };
     }
 
@@ -391,11 +394,9 @@ export class MusicService {
         this.db.query("UPDATE queue_items SET status = ? WHERE id = ?").run(status, itemId);
     }
 
-    private livePosition(current: CurrentPlay, now: number): number {
-        if (current.isPaused) {
-            return current.position;
-        }
-        return current.position + (now - current.reportedAt) / 1000;
+    private voteSecondsLeft(current: CurrentPlay, windowSeconds: number): number {
+        const elapsedSeconds = (this.clock() - current.startedAt) / 1000;
+        return Math.max(0, windowSeconds - elapsedSeconds);
     }
 
     private countVotesForPlay(playId: number): number {

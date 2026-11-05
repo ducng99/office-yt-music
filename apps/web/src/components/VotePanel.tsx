@@ -1,7 +1,6 @@
 import { For, Show, createSignal, onCleanup } from "solid-js";
 import { api, errorMessage } from "~/lib/api";
 import type { PersonalState } from "@office-music/shared";
-import { livePosition } from "~/lib/player";
 import { musicState, personal, receivedAt, setPersonal } from "~/lib/session";
 import { SkipIcon } from "./Icons";
 
@@ -12,10 +11,13 @@ export default function VotePanel() {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     onCleanup(() => clearInterval(timer));
 
-    const votes = () => musicState()?.votes ?? { voteCount: 0, threshold: 0, windowSeconds: 0 };
+    const votes = () => musicState()?.votes ?? { voteCount: 0, threshold: 0, windowSeconds: 0, secondsLeft: 0 };
     const votingClosed = () => {
-        const track = musicState()?.nowPlaying;
-        return Boolean(track && livePosition(track, receivedAt(), now()) > votes().windowSeconds);
+        if (!musicState()?.nowPlaying) {
+            return false;
+        }
+        const elapsedSinceReceived = (now() - receivedAt()) / 1000;
+        return votes().secondsLeft - elapsedSinceReceived <= 0;
     };
     const canVote = () => {
         const state = musicState();
