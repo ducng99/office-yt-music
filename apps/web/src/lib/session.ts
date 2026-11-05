@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js";
+import { batch, createSignal } from "solid-js";
 import type { BrowserEvent, PersonalState, PublicState, SessionUser } from "@office-music/shared";
 import { ApiError, api } from "./api";
 
@@ -66,8 +66,10 @@ export async function refreshPersonal(): Promise<void> {
 }
 
 function handleState(state: PublicState): void {
-    setMusicState(state);
-    setReceivedAt(Date.now());
+    batch(() => {
+        setMusicState(state);
+        setReceivedAt(Date.now());
+    });
 
     const playId = state.nowPlaying?.playId ?? null;
     if (playId !== lastPlayId) {

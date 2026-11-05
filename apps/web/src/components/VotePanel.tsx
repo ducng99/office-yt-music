@@ -16,7 +16,7 @@ export default function VotePanel() {
         if (!musicState()?.nowPlaying) {
             return false;
         }
-        const elapsedSinceReceived = (now() - receivedAt()) / 1000;
+        const elapsedSinceReceived = Math.max(0, now() - receivedAt()) / 1000;
         return votes().secondsLeft - elapsedSinceReceived <= 0;
     };
     const canVote = () => {
