@@ -1,6 +1,7 @@
 import { Route, Router, useLocation, useNavigate, type RouteSectionProps } from "@solidjs/router";
 import { Show, Suspense, createEffect, lazy, onMount } from "solid-js";
 import Header from "./components/Header";
+import { loadBranding, syncDocumentBranding } from "./lib/branding";
 import { loadSession, sessionChecked, user } from "./lib/session";
 import "./styles/tokens.css";
 import "./styles/app.css";
@@ -17,6 +18,8 @@ function Layout(props: RouteSectionProps) {
     const navigate = useNavigate();
 
     onMount(loadSession);
+    onMount(loadBranding);
+    syncDocumentBranding();
 
     createEffect(() => {
         if (!sessionChecked()) {

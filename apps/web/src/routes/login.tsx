@@ -2,6 +2,7 @@ import { useNavigate } from "@solidjs/router";
 import { Show, createSignal } from "solid-js";
 import { MusicIcon } from "~/components/Icons";
 import { errorMessage } from "~/lib/api";
+import { branding } from "~/lib/branding";
 import { login } from "~/lib/session";
 
 export default function Login() {
@@ -28,9 +29,11 @@ export default function Login() {
     return (
         <main class="container login">
             <form class="card stack" onSubmit={submit}>
-                <span class="brand-mark" style={{ width: "40px", height: "40px" }}><MusicIcon size={20} /></span>
+                <Show when={branding().logo} fallback={<span class="brand-mark" style={{ width: "40px", height: "40px" }}><MusicIcon size={20} /></span>}>
+                    {(logo) => <img class="brand-logo large" src={logo()} alt="" />}
+                </Show>
                 <div>
-                    <h1>Sign in</h1>
+                    <h1>{branding().logoOnly && branding().logo ? "Sign in" : branding().siteName}</h1>
                     <p class="muted" style={{ margin: 0 }}>See what's playing and pick what's next.</p>
                 </div>
                 <div class="field">

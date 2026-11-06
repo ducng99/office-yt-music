@@ -85,6 +85,18 @@ img {
     margin-right: auto;
 }
 
+.brand-logo {
+    height: 28px;
+    max-width: 160px;
+    object-fit: contain;
+}
+
+.brand-logo.large {
+    height: 48px;
+    max-width: 200px;
+    align-self: flex-start;
+}
+
 .brand-mark {
     display: grid;
     place-items: center;

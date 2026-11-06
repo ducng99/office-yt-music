@@ -1,5 +1,6 @@
 import { A, useNavigate } from "@solidjs/router";
 import { Show } from "solid-js";
+import { branding } from "~/lib/branding";
 import { logout, user } from "~/lib/session";
 import { LogOutIcon, MusicIcon, UserIcon } from "./Icons";
 import ThemeToggle from "./ThemeToggle";
@@ -16,8 +17,12 @@ export default function Header() {
         <header class="header">
             <div class="header-inner">
                 <A href="/" class="brand">
-                    <span class="brand-mark"><MusicIcon size={16} /></span>
-                    <span class="brand-name">Office Music</span>
+                    <Show when={branding().logo} fallback={<span class="brand-mark"><MusicIcon size={16} /></span>}>
+                        {(logo) => <img class="brand-logo" src={logo()} alt={branding().logoOnly ? branding().siteName : ""} />}
+                    </Show>
+                    <Show when={!(branding().logo && branding().logoOnly)}>
+                        <span class="brand-name">{branding().siteName}</span>
+                    </Show>
                 </A>
                 <Show when={user()?.isAdmin}>
                     <A href="/admin/users" class="nav-link" activeClass="active">Users</A>

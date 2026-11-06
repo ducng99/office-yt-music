@@ -1,6 +1,7 @@
 import { For, Show, createResource, createSignal } from "solid-js";
-import type { Settings } from "@office-music/shared";
+import type { Branding, Settings } from "@office-music/shared";
 import { api, errorMessage } from "~/lib/api";
+import { branding, setBranding } from "~/lib/branding";
 import { musicState, user } from "~/lib/session";
 
 interface SettingsResponse {
@@ -34,6 +35,47 @@ export default function AdminSettings() {
             mutate(await api<SettingsResponse>("/api/admin/settings", "PUT", draft()));
             setDraft({});
             setSuccess("Settings saved");
+        } catch (caught) {
+            setError(errorMessage(caught));
+        }
+    }
+
+    const [siteName, setSiteName] = createSignal<string | null>(null);
+    const [logoOnly, setLogoOnly] = createSignal<boolean | null>(null);
+    const [logo, setLogo] = createSignal<string | null | undefined>(undefined);
+
+    const shownLogo = () => (logo() === undefined ? branding().logo : logo());
+    const brandingDirty = () => siteName() !== null || logoOnly() !== null || logo() !== undefined;
+
+    function chooseLogo(event: Event & { currentTarget: HTMLInputElement }) {
+        const file = event.currentTarget.files?.[0];
+        if (!file) {
+            return;
+        }
+        if (file.size > 500_000) {
+            setError("Logo must be under 500 KB");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => setLogo(String(reader.result));
+        reader.readAsDataURL(file);
+    }
+
+    async function saveBranding(event: SubmitEvent) {
+        event.preventDefault();
+        setError("");
+        setSuccess("");
+        const changes: Partial<Branding> = {};
+        if (siteName() !== null) changes.siteName = siteName()!;
+        if (logoOnly() !== null) changes.logoOnly = logoOnly()!;
+        if (logo() !== undefined) changes.logo = logo();
+        if (logo() === null) changes.logoOnly = false;
+        try {
+            setBranding(await api<Branding>("/api/admin/branding", "PUT", changes));
+            setSiteName(null);
+            setLogoOnly(null);
+            setLogo(undefined);
+            setSuccess("Branding saved");
         } catch (caught) {
             setError(errorMessage(caught));
         }
@@ -91,6 +133,46 @@ export default function AdminSettings() {
                 </For>
                 <div>
                     <button class="button primary" type="submit" disabled={Object.keys(draft()).length === 0}>Save</button>
+                </div>
+            </form>
+
+            <form class="card stack" onSubmit={saveBranding}>
+                <h2 class="card-title" style={{ margin: 0 }}>Branding</h2>
+                <div class="field">
+                    <label for="siteName">Site name</label>
+                    <input
+                        id="siteName"
+                        class="input"
+                        maxlength="50"
+                        value={siteName() ?? branding().siteName}
+                        onInput={(event) => setSiteName(event.currentTarget.value)}
+                        required
+                    />
+                </div>
+                <div class="field">
+                    <label for="logo">Logo</label>
+                    <Show when={shownLogo()}>
+                        {(src) => <img class="brand-logo large" src={src()} alt="Logo preview" />}
+                    </Show>
+                    <input id="logo" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" onChange={chooseLogo} />
+                    <span class="muted" style={{ "font-size": "13px" }}>PNG, JPEG, GIF, WebP or SVG, up to 500 KB. Also used as the browser icon.</span>
+                    <Show when={shownLogo()}>
+                        <div>
+                            <button class="button small" type="button" onClick={() => setLogo(null)}>Remove logo</button>
+                        </div>
+                    </Show>
+                </div>
+                <label class="row">
+                    <input
+                        type="checkbox"
+                        checked={(logoOnly() ?? branding().logoOnly) && !!shownLogo()}
+                        disabled={!shownLogo()}
+                        onChange={(event) => setLogoOnly(event.currentTarget.checked)}
+                    />
+                    Only show the logo (hide the site name)
+                </label>
+                <div>
+                    <button class="button primary" type="submit" disabled={!brandingDirty()}>Save</button>
                 </div>
             </form>
 

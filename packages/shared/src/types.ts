@@ -64,3 +64,9 @@ export interface Settings {
     voteWindowSeconds: number;
     maxQueuedPerUser: number;
 }
+
+export interface Branding {
+    siteName: string;
+    logo: string | null;
+    logoOnly: boolean;
+}

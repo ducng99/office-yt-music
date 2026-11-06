@@ -6,8 +6,8 @@ import { openDatabase } from "./db.ts";
 import { ControllerError, ControllerHub } from "./controller-hub.ts";
 import { MusicError, MusicService } from "./music-service.ts";
 import { UserError } from "./users.ts";
-import { SettingsError, getControllerToken } from "./settings.ts";
-import { type AppContext, HttpError, currentUser, errorResponse } from "./http.ts";
+import { SettingsError, getBranding, getControllerToken } from "./settings.ts";
+import { type AppContext, HttpError, currentUser, errorResponse, json } from "./http.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { musicRoutes } from "./routes/music.ts";
 import { adminRoutes } from "./routes/admin.ts";
@@ -88,6 +88,8 @@ server = Bun.serve<SocketData>({
             }
             return errorResponse(400, "Expected a WebSocket upgrade");
         },
+
+        "/api/branding": () => json(getBranding(db)),
 
         "/api/*": () => errorResponse(404, "Not found")
     },

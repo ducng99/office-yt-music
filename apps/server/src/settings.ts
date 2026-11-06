@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import type { Settings } from "@office-music/shared";
+import type { Branding, Settings } from "@office-music/shared";
 
 const DEFAULTS: Settings = {
     skipThreshold: 3,
@@ -69,4 +69,46 @@ export function regenerateControllerToken(db: Database): string {
     const token = crypto.randomUUID().replaceAll("-", "");
     writeValue(db, CONTROLLER_TOKEN_KEY, token);
     return token;
+}
+
+const DEFAULT_SITE_NAME = "Office Music";
+const MAX_SITE_NAME_LENGTH = 50;
+const MAX_LOGO_LENGTH = 700_000;
+const LOGO_PATTERN = /^data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/;
+
+export function getBranding(db: Database): Branding {
+    return {
+        siteName: readValue(db, "site_name") ?? DEFAULT_SITE_NAME,
+        logo: readValue(db, "site_logo") || null,
+        logoOnly: readValue(db, "logo_only") === "1"
+    };
+}
+
+export function updateBranding(db: Database, changes: Partial<Branding>): Branding {
+    if (changes.siteName !== undefined) {
+        const siteName = String(changes.siteName).trim();
+        if (siteName.length < 1 || siteName.length > MAX_SITE_NAME_LENGTH) {
+            throw new SettingsError(`Site name must be 1 to ${MAX_SITE_NAME_LENGTH} characters`);
+        }
+        writeValue(db, "site_name", siteName);
+    }
+    if (changes.logo !== undefined) {
+        if (changes.logo === null) {
+            writeValue(db, "site_logo", "");
+        } else {
+            if (typeof changes.logo !== "string" || changes.logo.length > MAX_LOGO_LENGTH || !LOGO_PATTERN.test(changes.logo)) {
+                throw new SettingsError("Logo must be a PNG, JPEG, GIF, WebP or SVG image under 500 KB");
+            }
+            writeValue(db, "site_logo", changes.logo);
+        }
+    }
+    if (changes.logoOnly !== undefined) {
+        writeValue(db, "logo_only", changes.logoOnly === true ? "1" : "0");
+    }
+    const branding = getBranding(db);
+    if (branding.logoOnly && !branding.logo) {
+        writeValue(db, "logo_only", "0");
+        branding.logoOnly = false;
+    }
+    return branding;
 }

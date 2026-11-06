@@ -1,7 +1,7 @@
 import type { BunRequest } from "bun";
-import type { Settings } from "@office-music/shared";
+import type { Branding, Settings } from "@office-music/shared";
 import { createUser, deleteUser, listUsers, setPassword, updateUserFlags } from "../users.ts";
-import { getControllerToken, getSettings, regenerateControllerToken, updateSettings } from "../settings.ts";
+import { getControllerToken, getSettings, updateBranding, regenerateControllerToken, updateSettings } from "../settings.ts";
 import { type AppContext, HttpError, json, parseId, readJson, requireAdmin } from "../http.ts";
 
 export function adminRoutes({ db, service, hub }: AppContext) {
@@ -57,6 +57,15 @@ export function adminRoutes({ db, service, hub }: AppContext) {
                 const settings = updateSettings(db, body);
                 service.notifyChanged();
                 return json({ settings, controllerToken: getControllerToken(db), controllerOnline: hub.online });
+            }
+        },
+
+        "/api/admin/branding": {
+            PUT: async (request: BunRequest) => {
+                requireAdmin(db, request);
+                const body = await readJson<Partial<Branding>>(request);
+                const branding = updateBranding(db, body);
+                return json(branding);
             }
         },
 
