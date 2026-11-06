@@ -424,6 +424,12 @@ img {
     gap: var(--space-4);
 }
 
+.vote-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
 .vote-info {
     flex: 1;
     min-width: 0;

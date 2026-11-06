@@ -89,6 +89,8 @@ export default function VotePanel() {
                         </Show>
                     </div>
                 </div>
+            </div>
+            <div class="vote-actions">
                 <button class="button primary" type="button" disabled={!canVote() || busy()} onClick={vote}>
                     <Show when={busy()} fallback={<SkipIcon size={16} />}><span class="spinner" /></Show>
                     {buttonLabel()}
