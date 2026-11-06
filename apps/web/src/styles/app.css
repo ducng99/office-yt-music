@@ -184,6 +184,16 @@ img {
     background: color-mix(in srgb, var(--accent) 88%, black);
 }
 
+.button.golden {
+    background: linear-gradient(135deg, #f6d365, #e5a50a);
+    border-color: #c98f08;
+    color: #3d2b00;
+}
+
+.button.golden:hover:not(:disabled) {
+    background: linear-gradient(135deg, #f9de80, #efb21a);
+}
+
 .button.danger {
     color: var(--danger);
 }

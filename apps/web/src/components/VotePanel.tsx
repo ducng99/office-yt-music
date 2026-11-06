@@ -93,7 +93,7 @@ export default function VotePanel() {
                     <Show when={busy()} fallback={<SkipIcon size={16} />}><span class="spinner" /></Show>
                     {buttonLabel()}
                 </button>
-                <button class="button" type="button" disabled={!canBuzz() || busy()} onClick={buzz} title="Lock this song so it can't be skipped (once per day)">
+                <button class="button golden" type="button" disabled={!canBuzz() || busy()} onClick={buzz} title="Lock this song so it can't be skipped (once per day)">
                     <StarIcon size={16} />
                     Golden buzzer
                 </button>
