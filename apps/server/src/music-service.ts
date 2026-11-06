@@ -18,6 +18,7 @@ interface CurrentPlay {
     artist: string;
     thumbnail: string;
     skipping: boolean;
+    golden: boolean;
     position: number;
     duration: number;
     isPaused: boolean;
@@ -34,6 +35,7 @@ interface QueueRow {
     user_id: number;
     status: QueueStatus;
     send_attempts: number;
+    golden: number;
 }
 
 function toQueueItem(row: QueueRow): QueueItem {
@@ -43,7 +45,8 @@ function toQueueItem(row: QueueRow): QueueItem {
         title: row.title,
         artist: row.artist,
         thumbnail: row.thumbnail,
-        status: row.status
+        status: row.status,
+        golden: row.golden === 1
     };
 }
 
@@ -72,6 +75,7 @@ export class MusicService {
             nowPlaying: current
                 ? {
                     playId: current.id,
+                    golden: current.golden,
                     videoId: current.videoId,
                     title: current.title,
                     artist: current.artist,
@@ -99,12 +103,14 @@ export class MusicService {
         const youVoted = current
             ? this.db.query("SELECT 1 FROM votes WHERE user_id = ? AND play_id = ?").get(userId, current.id) !== null
             : false;
+        const goldenBuzzerAvailable = this.db.query("SELECT 1 FROM golden_buzzers WHERE user_id = ? AND nz_date = ?").get(userId, nzDate(this.clock())) === null;
         const queuedItemIds = this.db.query<{ id: number }, [number]>(
             "SELECT id FROM queue_items WHERE user_id = ? AND status IN ('pending', 'sent') ORDER BY id"
         ).all(userId).map((row) => row.id);
 
         return {
             youVoted,
+            goldenBuzzerAvailable,
             votesLeftToday: Math.max(0, settings.dailyVoteLimit - used),
             dailyVoteLimit: settings.dailyVoteLimit,
             queuedItemIds
@@ -163,6 +169,9 @@ export class MusicService {
         const today = nzDate(now);
 
         const shouldSkip = this.db.transaction(() => {
+            if (current.golden) {
+                throw new MusicError("This song has the golden buzzer and can't be skipped");
+            }
             if (current.skipping) {
                 throw new MusicError("This song is already being skipped");
             }
@@ -196,6 +205,50 @@ export class MusicService {
                 console.error("Skip failed:", error);
             }
         }
+
+        this.notifyChanged();
+        return this.personalState(userId);
+    }
+
+    async goldenBuzzer(userId: number, target: { queueItemId: number } | { playing: true }): Promise<PersonalState> {
+        const now = this.clock();
+        const today = nzDate(now);
+
+        this.db.transaction(() => {
+            const used = this.db.query("SELECT 1 FROM golden_buzzers WHERE user_id = ? AND nz_date = ?").get(userId, today);
+            if (used) {
+                throw new MusicError("You already used your golden buzzer today");
+            }
+
+            let videoId: string;
+            if ("playing" in target) {
+                const current = this.currentPlay;
+                if (!current) {
+                    throw new MusicError("Nothing is playing right now");
+                }
+                if (current.golden) {
+                    throw new MusicError("This song already has the golden buzzer");
+                }
+                if (current.skipping) {
+                    throw new MusicError("This song is already being skipped");
+                }
+                current.golden = true;
+                this.db.query("UPDATE plays SET golden = 1 WHERE id = ?").run(current.id);
+                videoId = current.videoId;
+            } else {
+                const row = this.db.query<QueueRow, [number]>("SELECT * FROM queue_items WHERE id = ?").get(target.queueItemId);
+                if (!row || (row.status !== "pending" && row.status !== "sent")) {
+                    throw new MusicError("That song is no longer in the queue");
+                }
+                if (row.golden) {
+                    throw new MusicError("This song already has the golden buzzer");
+                }
+                this.db.query("UPDATE queue_items SET golden = 1 WHERE id = ?").run(row.id);
+                videoId = row.video_id;
+            }
+
+            this.db.query("INSERT INTO golden_buzzers (user_id, nz_date, video_id, created_at) VALUES (?, ?, ?, ?)").run(userId, today, videoId, now);
+        })();
 
         this.notifyChanged();
         return this.personalState(userId);
@@ -249,6 +302,9 @@ export class MusicService {
         const row = this.db.query<QueueRow, [number]>("SELECT * FROM queue_items WHERE id = ?").get(itemId);
         if (!row || (row.status !== "pending" && row.status !== "sent")) {
             throw new MusicError("That song is no longer in the queue");
+        }
+        if (row.golden) {
+            throw new MusicError("Songs with the golden buzzer can't be removed");
         }
         if (!requester.isAdmin && row.user_id !== requester.id) {
             throw new MusicError("You can only remove songs you added");
@@ -321,9 +377,12 @@ export class MusicService {
             this.db.query("UPDATE plays SET ended_at = ? WHERE id = ?").run(now, this.currentPlay.id);
         }
 
-        const row = this.db.query<{ id: number }, [string, string, string, string, number]>(
-            "INSERT INTO plays (video_id, title, artist, thumbnail, started_at) VALUES (?, ?, ?, ?, ?) RETURNING id"
-        ).get(report.videoId, report.title, report.artist, report.thumbnail, now);
+        const goldenItem = this.db.query("SELECT 1 FROM queue_items WHERE status = 'sent' AND video_id = ? AND golden = 1").get(report.videoId);
+        const golden = goldenItem !== null;
+
+        const row = this.db.query<{ id: number }, [string, string, string, string, number, number]>(
+            "INSERT INTO plays (video_id, title, artist, thumbnail, started_at, golden) VALUES (?, ?, ?, ?, ?, ?) RETURNING id"
+        ).get(report.videoId, report.title, report.artist, report.thumbnail, now, golden ? 1 : 0);
 
         if (!row) {
             throw new Error("Failed to record play");
@@ -336,6 +395,7 @@ export class MusicService {
             artist: report.artist,
             thumbnail: report.thumbnail,
             skipping: false,
+            golden,
             position: report.position,
             duration: report.duration,
             isPaused: report.isPaused,

@@ -1,13 +1,26 @@
 import { For, Show, createSignal } from "solid-js";
-import type { QueueItem } from "@office-music/shared";
+import type { PersonalState, QueueItem } from "@office-music/shared";
 import { api, errorMessage } from "~/lib/api";
-import { musicState, personal, refreshPersonal, user } from "~/lib/session";
-import { XIcon } from "./Icons";
+import { musicState, personal, refreshPersonal, setPersonal, user } from "~/lib/session";
+import { StarIcon, XIcon } from "./Icons";
 
 export default function Queue() {
     const [error, setError] = createSignal("");
     const queue = () => musicState()?.queue ?? [];
-    const canRemove = (item: QueueItem) => user()?.isAdmin || personal()?.queuedItemIds.includes(item.id);
+    const canBuzz = () => Boolean(personal()?.goldenBuzzerAvailable && musicState()?.controllerOnline);
+    const canRemove = (item: QueueItem) => !item.golden && (user()?.isAdmin || personal()?.queuedItemIds.includes(item.id));
+
+    async function buzz(item: QueueItem) {
+        if (!confirm(`Use your golden buzzer on "${item.title}"? It can't be skipped or removed, and you only get one per day.`)) {
+            return;
+        }
+        setError("");
+        try {
+            setPersonal(await api<PersonalState>("/api/golden-buzzer", "POST", { queueItemId: item.id }));
+        } catch (caught) {
+            setError(errorMessage(caught));
+        }
+    }
 
     async function remove(item: QueueItem) {
         if (!confirm(`Remove "${item.title}" from the queue?`)) {
@@ -50,6 +63,20 @@ export default function Queue() {
                                 </div>
                                 <Show when={item.status === "sent"}>
                                     <span class="badge">Next</span>
+                                </Show>
+                                <Show when={item.golden}>
+                                    <span class="badge golden">Golden</span>
+                                </Show>
+                                <Show when={canBuzz() && !item.golden}>
+                                    <button
+                                        class="icon-button golden"
+                                        type="button"
+                                        onClick={() => buzz(item)}
+                                        title="Golden buzzer"
+                                        aria-label={`Golden buzzer for ${item.title}`}
+                                    >
+                                        <StarIcon size={16} />
+                                    </button>
                                 </Show>
                                 <Show when={canRemove(item)}>
                                     <button

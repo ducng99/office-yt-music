@@ -26,6 +26,10 @@ export function MusicIcon(props: IconProps) {
     return <Svg size={props.size}><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></Svg>;
 }
 
+export function StarIcon(props: IconProps) {
+    return <Svg size={props.size}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></Svg>;
+}
+
 export function SkipIcon(props: IconProps) {
     return <Svg size={props.size}><polygon points="5 4 15 12 5 20 5 4" /><line x1="19" x2="19" y1="5" y2="19" /></Svg>;
 }

@@ -18,6 +18,15 @@ export function musicRoutes({ db, service }: AppContext) {
             }
         },
 
+        "/api/golden-buzzer": {
+            POST: async (request: BunRequest) => {
+                const user = requireUser(db, request);
+                const body = await readJson<{ queueItemId?: number }>(request);
+                const target = typeof body.queueItemId === "number" ? { queueItemId: body.queueItemId } : { playing: true as const };
+                return json(await service.goldenBuzzer(user.id, target));
+            }
+        },
+
         "/api/search": {
             GET: async (request: BunRequest) => {
                 requireUser(db, request);

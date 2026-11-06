@@ -15,10 +15,12 @@ export type QueueStatus = "pending" | "sent" | "played" | "removed";
 export interface QueueItem extends Track {
     id: number;
     status: QueueStatus;
+    golden: boolean;
 }
 
 export interface NowPlaying extends Track {
     playId: number;
+    golden: boolean;
     position: number;
     duration: number;
     isPaused: boolean;
@@ -41,6 +43,7 @@ export interface PublicState {
 
 export interface PersonalState {
     youVoted: boolean;
+    goldenBuzzerAvailable: boolean;
     votesLeftToday: number;
     dailyVoteLimit: number;
     queuedItemIds: number[];

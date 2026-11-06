@@ -56,6 +56,19 @@ const MIGRATIONS: string[] = [
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
     );
+    `,
+    `
+    ALTER TABLE plays ADD COLUMN golden INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE queue_items ADD COLUMN golden INTEGER NOT NULL DEFAULT 0;
+
+    CREATE TABLE golden_buzzers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        nz_date TEXT NOT NULL,
+        video_id TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        UNIQUE(user_id, nz_date)
+    );
     `
 ];
 

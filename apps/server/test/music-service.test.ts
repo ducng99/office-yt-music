@@ -405,3 +405,25 @@ describe("search", () => {
         ]);
     });
 });
+
+describe("golden buzzer", () => {
+    test("locks the playing song against skip votes, once per day", async () => {
+        await service.handlePlayerReport(report(videoId(1)));
+        await service.goldenBuzzer(userIds[0], { playing: true });
+        expect(service.publicState().nowPlaying?.golden).toBe(true);
+        await expect(service.vote(userIds[1])).rejects.toThrow("golden buzzer");
+        await expect(service.goldenBuzzer(userIds[0], { playing: true })).rejects.toThrow();
+
+        now += 24 * 60 * 60 * 1000;
+        expect(service.personalState(userIds[0]).goldenBuzzerAvailable).toBe(true);
+    });
+
+    test("queued golden song stays golden when played and can't be removed", async () => {
+        await service.handlePlayerReport(report(videoId(1)));
+        const item = await service.addToQueue(userIds[1], videoId(2));
+        await service.goldenBuzzer(userIds[0], { queueItemId: item.id });
+        await expect(service.removeQueueItem(admin(1), item.id)).rejects.toThrow("golden");
+        await service.handlePlayerReport(report(videoId(2)));
+        expect(service.publicState().nowPlaying?.golden).toBe(true);
+    });
+});

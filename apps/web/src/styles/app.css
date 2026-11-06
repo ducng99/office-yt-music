@@ -308,6 +308,15 @@ img {
     white-space: nowrap;
 }
 
+.badge.golden {
+    background: color-mix(in srgb, #e5a50a 18%, transparent);
+    color: #b7791f;
+}
+
+.icon-button.golden:hover {
+    color: #e5a50a;
+}
+
 .badge.neutral {
     background: var(--surface-2);
     color: var(--text-muted);
