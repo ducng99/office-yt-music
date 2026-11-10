@@ -15,7 +15,7 @@
         "typescript-eslint": "^8.72.1",
       },
     },
-    "apps/extension": {
+    "packages/extension": {
       "name": "@office-music/extension",
       "dependencies": {
         "@office-music/shared": "workspace:*",
@@ -24,7 +24,7 @@
         "@types/chrome": "^0.3.7",
       },
     },
-    "apps/server": {
+    "packages/server": {
       "name": "@office-music/server",
       "dependencies": {
         "@office-music/shared": "workspace:*",
@@ -33,7 +33,10 @@
         "vite": "^8.3.5",
       },
     },
-    "apps/web": {
+    "packages/shared": {
+      "name": "@office-music/shared",
+    },
+    "packages/web": {
       "name": "@office-music/web",
       "dependencies": {
         "@office-music/shared": "workspace:*",
@@ -42,9 +45,6 @@
         "vite": "^8.3.5",
         "vite-plugin-solid": "^2.11.15",
       },
-    },
-    "packages/shared": {
-      "name": "@office-music/shared",
     },
   },
   "packages": {
@@ -128,13 +128,13 @@
 
     "@keyv/serialize": ["@keyv/serialize@1.1.1", "", {}, "sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA=="],
 
-    "@office-music/extension": ["@office-music/extension@workspace:apps/extension"],
+    "@office-music/extension": ["@office-music/extension@workspace:packages/extension"],
 
-    "@office-music/server": ["@office-music/server@workspace:apps/server"],
+    "@office-music/server": ["@office-music/server@workspace:packages/server"],
 
     "@office-music/shared": ["@office-music/shared@workspace:packages/shared"],
 
-    "@office-music/web": ["@office-music/web@workspace:apps/web"],
+    "@office-music/web": ["@office-music/web@workspace:packages/web"],
 
     "@oxc-project/types": ["@oxc-project/types@0.156.0", "", {}, "sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw=="],
 

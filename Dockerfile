@@ -2,16 +2,16 @@ FROM oven/bun:1 AS build
 WORKDIR /src
 
 COPY package.json bun.lock ./
-COPY apps/server/package.json apps/server/
-COPY apps/web/package.json apps/web/
-COPY apps/extension/package.json apps/extension/
+COPY packages/server/package.json packages/server/
+COPY packages/web/package.json packages/web/
+COPY packages/extension/package.json packages/extension/
 COPY packages/shared/package.json packages/shared/
 RUN bun install --frozen-lockfile
 
 COPY . .
-RUN bun run --cwd apps/web build
-RUN bun build apps/server/src/index.ts --target=bun --external vite --outfile=/out/server.js
-RUN bun build apps/server/src/scripts/create-user.ts --target=bun --outfile=/out/create-user.js
+RUN bun run --cwd packages/web build
+RUN bun build packages/server/src/index.ts --target=bun --external vite --outfile=/out/server.js
+RUN bun build packages/server/src/scripts/create-user.ts --target=bun --outfile=/out/create-user.js
 
 FROM oven/bun:1-slim
 WORKDIR /app
@@ -23,7 +23,7 @@ ENV NODE_ENV=production \
     STATIC_DIR=/app/public
 
 COPY --from=build /out/server.js /out/create-user.js ./
-COPY --from=build /src/apps/web/dist ./public
+COPY --from=build /src/packages/web/dist ./public
 
 RUN mkdir -p /data && chown bun:bun /data
 VOLUME /data
