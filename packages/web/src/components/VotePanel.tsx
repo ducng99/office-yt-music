@@ -84,7 +84,7 @@ export default function VotePanel() {
                         {votes().voteCount} of {votes().threshold} votes to skip
                         <Show when={personal()}>
                             {(mine) => (
-                                <> &middot; {mine().votesLeftToday} of {mine().dailyVoteLimit} votes left today</>
+                                <> &middot; You have {mine().votesLeftToday} votes left today</>
                             )}
                         </Show>
                     </div>
