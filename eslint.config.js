@@ -22,7 +22,7 @@ export default defineConfig(
         }
     },
     {
-        files: ["apps/web/**/*.{ts,tsx}"],
+        files: ["packages/web/**/*.{ts,tsx}"],
         ...solid,
         languageOptions: {
             ...solid.languageOptions,
@@ -30,13 +30,13 @@ export default defineConfig(
         }
     },
     {
-        files: ["apps/extension/src/**/*.ts", "apps/web/public/**/*.js"],
+        files: ["packages/extension/src/**/*.ts", "packages/web/public/**/*.js"],
         languageOptions: {
             globals: { ...globals.browser, chrome: "readonly" }
         }
     },
     {
-        files: ["apps/server/**/*.ts", "packages/**/*.ts", "apps/extension/build.ts", "eslint.config.js", "**/vite.config.ts"],
+        files: ["packages/server/**/*.ts", "packages/**/*.ts", "packages/extension/build.ts", "eslint.config.js", "**/vite.config.ts"],
         languageOptions: {
             globals: { ...globals.node, Bun: "readonly" }
         }

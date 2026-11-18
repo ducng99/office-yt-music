@@ -69,6 +69,20 @@ const MIGRATIONS: string[] = [
         created_at INTEGER NOT NULL,
         UNIQUE(user_id, nz_date)
     );
+    `,
+    `
+    CREATE TABLE skip_counts (
+        video_id TEXT PRIMARY KEY,
+        skip_count INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE blacklist (
+        video_id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        artist TEXT NOT NULL,
+        thumbnail TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+    );
     `
 ];
 

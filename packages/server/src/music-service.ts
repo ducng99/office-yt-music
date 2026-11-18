@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { extractVideoId } from "@office-music/shared";
-import type { PersonalState, PlayerReport, PublicState, QueueItem, QueueStatus, SearchResult, SessionUser } from "@office-music/shared";
+import type { BlacklistEntry, PersonalState, PlayerReport, PublicState, QueueItem, QueueStatus, SearchResult, SessionUser, Track } from "@office-music/shared";
 import type { Controller } from "./controller-hub.ts";
 import { getSettings } from "./settings.ts";
 import { nzDate } from "./nz-date.ts";
@@ -48,6 +48,15 @@ function toQueueItem(row: QueueRow): QueueItem {
         status: row.status,
         golden: row.golden === 1
     };
+}
+
+interface BlacklistRow {
+    video_id: string;
+    title: string;
+    artist: string;
+    thumbnail: string;
+    created_at: number;
+    skip_count: number;
 }
 
 export class MusicService {
@@ -145,6 +154,9 @@ export class MusicService {
         this.startPlay(report, now);
         this.reconcileSentItem(report.videoId);
         this.notifyChanged();
+        if (this.isBlacklisted(report.videoId)) {
+            await this.skipBlacklisted();
+        }
         await this.pushNextIfNeeded();
     }
 
@@ -199,6 +211,7 @@ export class MusicService {
         if (shouldSkip) {
             try {
                 await this.controller.send({ type: "skip" });
+                this.recordSuccessfulSkip(current);
             } catch (error) {
                 current.skipping = false;
                 this.db.query("UPDATE plays SET skipped_by_vote = 0 WHERE id = ?").run(current.id);
@@ -274,6 +287,7 @@ export class MusicService {
             throw new MusicError("That doesn't look like a YouTube or YouTube Music link");
         }
 
+        this.assertNotBlacklisted(videoId);
         this.assertNotDuplicate(videoId);
         this.assertUnderQueueLimit(userId);
 
@@ -370,6 +384,97 @@ export class MusicService {
                 this.notifyChanged();
             }
         }
+    }
+
+    listBlacklist(): BlacklistEntry[] {
+        const rows = this.db.query<BlacklistRow, []>(
+            `SELECT b.video_id, b.title, b.artist, b.thumbnail, b.created_at, COALESCE(s.skip_count, 0) AS skip_count
+            FROM blacklist b LEFT JOIN skip_counts s ON s.video_id = b.video_id
+            ORDER BY b.created_at DESC`
+        ).all();
+        return rows.map((row) => ({
+            videoId: row.video_id,
+            title: row.title,
+            artist: row.artist,
+            thumbnail: row.thumbnail,
+            skipCount: row.skip_count,
+            createdAt: row.created_at
+        }));
+    }
+
+    async addToBlacklist(input: string): Promise<BlacklistEntry[]> {
+        const videoId = extractVideoId(input);
+        if (!videoId) {
+            throw new MusicError("That doesn't look like a YouTube or YouTube Music link");
+        }
+        if (this.isBlacklisted(videoId)) {
+            throw new MusicError("That song is already blacklisted");
+        }
+
+        const [track] = await this.controller.send({ type: "lookup", videoId });
+        if (!track) {
+            throw new MusicError("Couldn't find that song");
+        }
+
+        this.insertBlacklist(track);
+        const queued = this.db.query<QueueRow, [string]>("SELECT * FROM queue_items WHERE video_id = ? AND status = 'pending'").all(videoId);
+        for (const item of queued) {
+            this.setQueueStatus(item.id, "removed");
+        }
+        this.notifyChanged();
+        if (this.currentPlay?.videoId === videoId) {
+            await this.skipBlacklisted();
+        }
+        return this.listBlacklist();
+    }
+
+    removeFromBlacklist(videoId: string): BlacklistEntry[] {
+        const result = this.db.query("DELETE FROM blacklist WHERE video_id = ?").run(videoId);
+        if (result.changes === 0) {
+            throw new MusicError("That song is not blacklisted");
+        }
+        this.db.query("DELETE FROM skip_counts WHERE video_id = ?").run(videoId);
+        return this.listBlacklist();
+    }
+
+    private isBlacklisted(videoId: string): boolean {
+        return this.db.query("SELECT 1 FROM blacklist WHERE video_id = ?").get(videoId) !== null;
+    }
+
+    private assertNotBlacklisted(videoId: string): void {
+        if (this.isBlacklisted(videoId)) {
+            throw new MusicError("That song is blacklisted");
+        }
+    }
+
+    private insertBlacklist(track: Track): void {
+        this.db.query("INSERT OR IGNORE INTO blacklist (video_id, title, artist, thumbnail, created_at) VALUES (?, ?, ?, ?, ?)").run(
+            track.videoId, track.title, track.artist, track.thumbnail, this.clock()
+        );
+    }
+
+    private recordSuccessfulSkip(play: CurrentPlay): void {
+        const row = this.db.query<{ skip_count: number }, [string]>(
+            "INSERT INTO skip_counts (video_id, skip_count) VALUES (?, 1) ON CONFLICT(video_id) DO UPDATE SET skip_count = skip_count + 1 RETURNING skip_count"
+        ).get(play.videoId);
+        if (row && row.skip_count >= getSettings(this.db).blacklistSkipCount) {
+            this.insertBlacklist(play);
+        }
+    }
+
+    private async skipBlacklisted(): Promise<void> {
+        const current = this.currentPlay;
+        if (!current || current.skipping) {
+            return;
+        }
+        current.skipping = true;
+        try {
+            await this.controller.send({ type: "skip" });
+        } catch (error) {
+            current.skipping = false;
+            console.error("Blacklist skip failed:", error);
+        }
+        this.notifyChanged();
     }
 
     private startPlay(report: PlayerReport, now: number): void {

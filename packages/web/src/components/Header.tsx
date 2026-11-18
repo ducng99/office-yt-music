@@ -26,6 +26,7 @@ export default function Header() {
                 </A>
                 <Show when={user()?.isAdmin}>
                     <A href="/admin/users" class="nav-link" activeClass="active">Users</A>
+                    <A href="/admin/blacklist" class="nav-link" activeClass="active">Blacklist</A>
                     <A href="/admin/settings" class="nav-link" activeClass="active">Settings</A>
                 </Show>
                 <ThemeToggle />

@@ -6,7 +6,8 @@ const DEFAULTS: Settings = {
     dailyVoteLimit: 3,
     duplicateWindowHours: 4,
     voteWindowSeconds: 60,
-    maxQueuedPerUser: 5
+    maxQueuedPerUser: 5,
+    blacklistSkipCount: 2
 };
 
 const KEYS: Record<keyof Settings, string> = {
@@ -14,7 +15,8 @@ const KEYS: Record<keyof Settings, string> = {
     dailyVoteLimit: "daily_vote_limit",
     duplicateWindowHours: "duplicate_window_hours",
     voteWindowSeconds: "vote_window_seconds",
-    maxQueuedPerUser: "max_queued_per_user"
+    maxQueuedPerUser: "max_queued_per_user",
+    blacklistSkipCount: "blacklist_skip_count"
 };
 
 const CONTROLLER_TOKEN_KEY = "controller_token";

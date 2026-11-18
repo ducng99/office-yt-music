@@ -10,6 +10,7 @@ const Home = lazy(() => import("./routes/index"));
 const Login = lazy(() => import("./routes/login"));
 const Account = lazy(() => import("./routes/account"));
 const AdminUsers = lazy(() => import("./routes/admin/users"));
+const AdminBlacklist = lazy(() => import("./routes/admin/blacklist"));
 const AdminSettings = lazy(() => import("./routes/admin/settings"));
 const NotFound = lazy(() => import("./routes/not-found"));
 
@@ -50,6 +51,7 @@ export default function App() {
             <Route path="/login" component={Login} />
             <Route path="/account" component={Account} />
             <Route path="/admin/users" component={AdminUsers} />
+            <Route path="/admin/blacklist" component={AdminBlacklist} />
             <Route path="/admin/settings" component={AdminSettings} />
             <Route path="*404" component={NotFound} />
         </Router>

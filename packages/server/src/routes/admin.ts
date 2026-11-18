@@ -60,6 +60,25 @@ export function adminRoutes({ db, service, hub }: AppContext) {
             }
         },
 
+        "/api/admin/blacklist": {
+            GET: (request: BunRequest) => {
+                requireAdmin(db, request);
+                return json(service.listBlacklist());
+            },
+            POST: async (request: BunRequest) => {
+                requireAdmin(db, request);
+                const body = await readJson<{ url?: string }>(request);
+                return json(await service.addToBlacklist(body.url ?? ""), 201);
+            }
+        },
+
+        "/api/admin/blacklist/:videoId": {
+            DELETE: (request: BunRequest<"/api/admin/blacklist/:videoId">) => {
+                requireAdmin(db, request);
+                return json(service.removeFromBlacklist(request.params.videoId));
+            }
+        },
+
         "/api/admin/branding": {
             PUT: async (request: BunRequest) => {
                 requireAdmin(db, request);

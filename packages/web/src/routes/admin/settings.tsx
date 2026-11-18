@@ -15,7 +15,8 @@ const FIELDS: { key: keyof Settings; label: string; help: string }[] = [
     { key: "dailyVoteLimit", label: "Skip votes per person per day", help: "Resets at midnight NZ time." },
     { key: "voteWindowSeconds", label: "Skip voting window (seconds)", help: "Votes to skip are only accepted during this many seconds (real time, regardless of seeking or pausing) after a song starts." },
     { key: "duplicateWindowHours", label: "Duplicate window (hours)", help: "A song can't be re-added if it played within this many hours." },
-    { key: "maxQueuedPerUser", label: "Max queued songs per person", help: "Users can't add more songs while they already have this many in the queue." }
+    { key: "maxQueuedPerUser", label: "Max queued songs per person", help: "Users can't add more songs while they already have this many in the queue." },
+    { key: "blacklistSkipCount", label: "Skips before blacklisting", help: "A song is blacklisted, and automatically skipped whenever it plays, after being skipped this many times." }
 ];
 
 export default function AdminSettings() {

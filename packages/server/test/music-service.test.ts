@@ -427,3 +427,38 @@ describe("golden buzzer", () => {
         expect(service.publicState().nowPlaying?.golden).toBe(true);
     });
 });
+
+describe("blacklist", () => {
+    test("blacklists a song after it is skipped twice and auto-skips it", async () => {
+        updateSettings(db, { skipThreshold: 1 });
+        await service.handlePlayerReport(report(videoId(1)));
+        await service.vote(userIds[0]);
+        expect(service.listBlacklist()).toHaveLength(0);
+
+        await service.handlePlayerReport(report(videoId(2)));
+        await service.handlePlayerReport(report(videoId(1)));
+        await service.vote(userIds[1]);
+        expect(service.listBlacklist().map((entry) => entry.videoId)).toEqual([videoId(1)]);
+
+        controller.commands = [];
+        await service.handlePlayerReport(report(videoId(2)));
+        await service.handlePlayerReport(report(videoId(1)));
+        expect(controller.commandTypes()).toEqual(["skip"]);
+    });
+
+    test("respects the configured skip count", async () => {
+        updateSettings(db, { skipThreshold: 1, blacklistSkipCount: 1 });
+        await service.handlePlayerReport(report(videoId(1)));
+        await service.vote(userIds[0]);
+        expect(service.listBlacklist()).toHaveLength(1);
+    });
+
+    test("admin can add and remove entries", async () => {
+        await service.addToBlacklist(`https://music.youtube.com/watch?v=${videoId(5)}`);
+        expect(service.listBlacklist()).toHaveLength(1);
+        await expect(service.addToQueue(userIds[0], videoId(5))).rejects.toThrow("blacklisted");
+
+        service.removeFromBlacklist(videoId(5));
+        expect(service.listBlacklist()).toHaveLength(0);
+    });
+});

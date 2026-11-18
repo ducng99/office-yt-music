@@ -66,6 +66,12 @@ export interface Settings {
     duplicateWindowHours: number;
     voteWindowSeconds: number;
     maxQueuedPerUser: number;
+    blacklistSkipCount: number;
+}
+
+export interface BlacklistEntry extends Track {
+    skipCount: number;
+    createdAt: number;
 }
 
 export interface Branding {
